@@ -1,3 +1,4 @@
+import java.sql.Wrapper;
 import java.util.Comparator;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
@@ -134,9 +135,42 @@ public class ABB<K, V> implements IMapeamento<K, V>{
      */
     public int inserir(K chave, V item) {
     	
-    	// TODO
+    	comparacoes = 0;
+    inicio = System.nanoTime();
+
+    raiz = inserir(raiz, chave, item);
+
+    termino = System.nanoTime();
+    
         return tamanho;
     }
+
+	private No<K, V> inserir(No<K, V> raizArvore, K chave, V item) {
+
+		if (raizArvore == null) {
+			tamanho++;
+			return new No<>(chave, item);
+		}
+	
+		comparacoes++;
+		int cmp = comparador.compare(chave, raizArvore.getChave());
+	
+		if (cmp < 0) {
+			raizArvore.setEsquerda(inserir(raizArvore.getEsquerda(), chave, item));
+		}
+		else if (cmp > 0) {
+			raizArvore.setDireita(inserir(raizArvore.getDireita(), chave, item));
+		}
+		else {
+			// Se a chave já existe, atualiza o valor
+			raizArvore.setItem(item);
+		}
+	
+		return raizArvore;
+	}
+
+
+
 
     @Override 
     public String toString(){
@@ -149,11 +183,19 @@ public class ABB<K, V> implements IMapeamento<K, V>{
     }
 
     public String caminhamentoEmOrdem() {
-    	
-    	// TODO
-    	return null;
-    }
-
+		StringBuilder sb = new StringBuilder();
+		caminhamentoEmOrdem(raiz, sb);
+		return sb.toString();
+	}
+	
+	private void caminhamentoEmOrdem(No<K, V> no, StringBuilder sb) {
+		if (no == null) return;
+	
+		caminhamentoEmOrdem(no.getEsquerda(), sb);
+		sb.append("(").append(no.getChave()).append(", ").append(no.getItem()).append(") ");
+		caminhamentoEmOrdem(no.getDireita(), sb);
+	}
+	
     @Override
     /**
      * Método que encapsula a remoção recursiva de um item da árvore.
@@ -161,10 +203,69 @@ public class ABB<K, V> implements IMapeamento<K, V>{
      * @return o valor associado ao item removido.
      */
     public V remover(K chave) {
-    	
-    	// TODO
-    	return null;
+		comparacoes = 0;
+		inicio = System.nanoTime();
+	
+		// Primeiro encontramos o item (ou exceção se não existir)
+		V removido = pesquisar(chave);
+	
+		// Agora removemos o nó
+		raiz = remover(raiz, chave);
+	
+		tamanho--;
+	
+		termino = System.nanoTime();
+		return removido;
     }
+
+	private No<K, V> remover(No<K, V> raizArvore, K chave) {
+
+		if (raizArvore == null)
+			return null;
+	
+		comparacoes++;
+		int cmp = comparador.compare(chave, raizArvore.getChave());
+	
+		if (cmp < 0) {
+			raizArvore.setEsquerda(remover(raizArvore.getEsquerda(), chave));
+		}
+		else if (cmp > 0) {
+			raizArvore.setDireita(remover(raizArvore.getDireita(), chave));
+		}
+		else {
+			// Caso 1: nó folha
+			if (raizArvore.getEsquerda() == null && raizArvore.getDireita() == null) {
+				return null;
+			}
+	
+			// Caso 2: só um filho
+			if (raizArvore.getEsquerda() == null) {
+				return raizArvore.getDireita();
+			}
+			if (raizArvore.getDireita() == null) {
+				return raizArvore.getEsquerda();
+			}
+	
+			// Caso 3: dois filhos
+			No<K, V> sucessor = encontrarMinimo(raizArvore.getDireita());
+	
+			// Copiamos dados do sucessor
+			raizArvore.setChave(sucessor.getChave());
+			raizArvore.setItem(sucessor.getItem());
+	
+			// Removemos o sucessor na subárvore direita
+			raizArvore.setDireita(remover(raizArvore.getDireita(), sucessor.getChave()));
+		}
+	
+		return raizArvore;
+	}
+
+	private No<K, V> encontrarMinimo(No<K, V> no) {
+		while (no.getEsquerda() != null)
+			no = no.getEsquerda();
+		return no;
+	}
+	
 
 	@Override
 	public int tamanho() {
